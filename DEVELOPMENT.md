@@ -795,3 +795,20 @@ public Iterable<SubLevel> sable$getConnectionDependencies();   // ✓ Sable 通�
 
 > **改这个模组的时候请守住这条**：
 > 任何新增的日志、消息、特效，默认都应该是**关的**。
+
+---
+
+## 图标：两张，用途不同，别搞混
+
+| 路径 | 尺寸 | 用途 |
+| --- | --- | --- |
+| `aerofade.png`（仓库根目录） | 1000×1000 | **只给 README 显示用**，不参与构建 |
+| `src/main/resources/aerofade.png` | 256×256 | **会被打进 jar**，由 `neoforge.mods.toml` 的 `logoFile` 引用，出现在游戏内模组列表 |
+
+改动时**两张要一起换**，否则会出现"GitHub 上是一个图、游戏里是另一个图"。
+
+重建命令：
+
+    gradlew.bat build --project-cache-dir <缓存目录>
+
+产物在 `build/libs/aerofade-<版本>.jar`。
