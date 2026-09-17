@@ -1,0 +1,64 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+# 中文直接写在这里，而不是走 gradle.properties 的占位符替换 ——
+# Gradle 用 ISO-8859-1 读 gradle.properties，中文会变成乱码写进 jar。
+# neoforge.mods.toml 本身是按 UTF-8 读的，所以放这里才安全。
+# （注意：这个文件会被 Groovy 模板引擎处理，注释里不要写美元符号加大括号，会被吃掉。）
+displayName = "航空学：虚化 (${mod_name})"
+authors = "BiliBili@上升_螺旋, DeepSeek-V4.1-Flash"
+logoFile = "aerofade.png"
+description = '''${mod_description}'''
+
+[[mixins]]
+config = "aerofade.mixins.json"
+
+[[dependencies.${mod_id}]]
+modId = "neoforge"
+type = "required"
+versionRange = "${neo_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "create"
+type = "required"
+versionRange = "[6.0.10,)"
+ordering = "NONE"
+side = "BOTH"
+
+# Sable 物理引擎 —— 本模组直接操作子维度(SubLevel)生命周期
+[[dependencies.${mod_id}]]
+modId = "sable"
+type = "required"
+versionRange = "[2.0.0,3.0.0)"
+ordering = "NONE"
+side = "BOTH"
+
+# Simulated —— 铭牌(NameplateBlockEntity)在这里，属于硬依赖
+[[dependencies.${mod_id}]]
+modId = "simulated"
+type = "required"
+versionRange = "[1.3.0,)"
+ordering = "NONE"
+side = "BOTH"
+
+# 航空学本体只是软依赖：本模组不 import 它的类，
+# 理论上任何用 Sable 的物理载具都适用。
+[[dependencies.${mod_id}]]
+modId = "aeronautics"
+type = "optional"
+versionRange = "[1.3.0,)"
+ordering = "NONE"
+side = "BOTH"

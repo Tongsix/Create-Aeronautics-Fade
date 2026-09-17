@@ -1,0 +1,186 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.146'
+}
+
+version = mod_version
+group = mod_group_id
+base { archivesName = mod_id }
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version as int)
+}
+
+repositories {
+    // === 离线本地仓库（优先级最高）===
+    // 国内链路对 >5MB 的构件很不友好：实测 maven.createmod.net 只有 ~14 KB/s，
+    // Gradle 下到一半就会 "Premature end of Content-Length" 失败（Create 的
+    // 19MB jar 连续两次断在 7.7MB / 11.1MB）。
+    // 所以把几个大构件从本地已有的 jar 放进 libs-maven/，按标准 Maven 布局存放。
+    // 这几个坐标的版本号和官方一致，Gradle 会优先命中本地、根本不会去联网。
+    // 换一台网络好的机器时，删掉这一行即可回到纯官方源。
+    maven {
+        name = 'LocalBundled'
+        url = uri("${projectDir}/libs-maven")
+    }
+
+    // 阿里云 Maven Central 镜像（国内加速）。找不到的构件会自动回落到下面的官方源。
+    maven {
+        name = 'AliyunCentral'
+        url = 'https://maven.aliyun.com/repository/central'
+    }
+    mavenCentral()
+
+    // 注意：下面这些仓库没有国内镜像，只能走官方源
+    // （实测均可访问：maven.ryanhcode.dev / maven.createmod.net / mvn.devos.one /
+    //   maven.blamejared.com / maven.neoforged.net）
+
+    // Sable / Sable Companion / 航空学 / Simulated
+    //
+    // ⚠️ 这里必须用「带 content 过滤的普通 maven」而不是 exclusiveContent。
+    // exclusiveContent 会把这几个组**独占**给这一个仓库，
+    // 于是 Gradle 根本不会去 libs-maven 里找它们 —— 实测踩过这个坑：
+    // 报错直接是 "Searched in the following locations: 只有 maven.ryanhcode.dev 一条"。
+    // 用 content{} 过滤则只是「限制这个仓库负责哪些组」，其它仓库仍然会参与解析。
+    maven {
+        name = 'RyanHCode'
+        url = 'https://maven.ryanhcode.dev/releases'
+        content {
+            includeGroup 'dev.ryanhcode.sable'
+            includeGroup 'dev.ryanhcode.sable-companion'
+            includeGroup 'dev.ryanhcode.offroad'
+            includeGroup 'dev.eriksonn.aeronautics'
+            includeGroup 'dev.simulated_team.simulated'
+        }
+    }
+    maven { name = 'CreateMod'; url = 'https://maven.createmod.net' }        // Create / Ponder / Flywheel
+    maven { name = 'Registrate'; url = 'https://mvn.devos.one/snapshots' }   // Registrate
+    maven { name = 'BlameJared'; url = 'https://maven.blamejared.com' }      // Veil
+    maven { name = 'ParchmentMC'; url = 'https://maven.parchmentmc.org' }
+    maven { name = 'NeoForged'; url = 'https://maven.neoforged.net/releases' }
+
+    // === 以下是「航空学 / Simulated 的传递依赖」可能用到的仓库 ===
+    // 现在 libs-maven 里的 POM 都是精简版（不声明依赖），所以正常不会走到这里；
+    // 留着是给「哪天换回官方完整 POM」兜底。
+    maven { name = 'IllusiveC4'; url = 'https://maven.theillusivec4.top/' }   // Curios
+    maven { name = 'ModMaven'; url = 'https://modmaven.dev' }                 // JEI 备用源
+    maven {
+        name = 'SquidDev'
+        url = 'https://maven.squiddev.cc'
+        content { includeGroup 'cc.tweaked' }                                 // CC: Tweaked
+    }
+    // 注意：这里**故意不放** Fuzs 的 ForgeConfigAPIPort 仓库
+    // （https://raw.githubusercontent.com/Fuzss/modresources/main/maven/）。
+    // 它是 Sable 的传递依赖，但那条链路国内基本不可用，而我们的代码根本用不到它。
+    exclusiveContent {
+        forRepository {
+            maven { name = 'Modrinth'; url = 'https://api.modrinth.com/maven' }
+        }
+        filter { includeGroup 'maven.modrinth' }
+    }
+}
+
+neoForge {
+    version = neo_version
+
+    parchment {
+        minecraftVersion = parchment_minecraft_version
+        mappingsVersion = parchment_mappings_version
+    }
+
+    runs {
+        client {
+            client()
+            gameDirectory = project.file('run/client')
+        }
+        server {
+            server()
+            programArgument '--nogui'
+            gameDirectory = project.file('run/server')
+        }
+        data {
+            data()
+            gameDirectory = project.file('run/data')
+            programArguments.addAll '--mod', mod_id, '--all',
+                    '--output', file('src/generated/resources/').getAbsolutePath(),
+                    '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+        configureEach {
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+dependencies {
+    // ============ Create（Simulated 的底层，Simulated 的类签名里到处是 Create 的类型）============
+    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") {
+        transitive = false
+    }
+    implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
+    implementation("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
+    implementation("com.tterrag.registrate:Registrate:${registrate_version}")
+
+    // ============ Sable 物理引擎 ============
+    implementation("dev.ryanhcode.sable:sable-neoforge-${minecraft_version}:${sable_version}")
+    compileOnly("dev.ryanhcode.sable-companion:sable-companion-common-${minecraft_version}:${sable_companion_version}")
+
+    // ============ Veil（Sable 的渲染前置）============
+    // 为什么必须显式声明：Sable 的 SubLevelRenderDispatcher#updateCulling 签名里
+    // 有 foundry.veil.api.client.render.CullFrustum，javac 解析这个类时就需要 veil 在类路径上。
+    // 正常情况它会作为 Sable 的传递依赖自动进来，但 libs-maven 里放的是精简 POM（无依赖），
+    // 所以这里自己写一行。
+    implementation("foundry.veil:veil-neoforge-${minecraft_version}:${veil_version}") {
+        transitive = false
+    }
+
+    // ============ Sable 的 Rust 物理后端 ============
+    // 正常情况它由 sable 的 POM 作为 runtime 依赖带进来（也 JiJ 在 sable jar 内部）。
+    // 精简 POM 之后需要自己声明，否则 runServer/runClient 时 Sable 初始化会因为
+    // 找不到物理后端而失败。
+    implementation("dev.ryanhcode.sable:sable-sable_rapier-${minecraft_version}:${sable_version}") {
+        transitive = false
+    }
+
+    // ============ Simulated（铭牌 NameplateBlockEntity 在这里）============
+    // 本模组的核心判定依赖「铭牌」，所以 simulated 是硬依赖。
+    implementation("dev.simulated_team.simulated:simulated-neoforge-${minecraft_version}:${simulated_version}")
+
+    // ============ 航空学 ============
+    // 本模组并不 import 航空学自己的类，所以它只是软依赖（运行时有就好）。
+    implementation("dev.eriksonn.aeronautics:aeronautics-neoforge-${minecraft_version}:${aeronautics_version}")
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    def expandProps = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_description        : mod_description
+    ]
+    inputs.properties(expandProps)
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand expandProps
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+}

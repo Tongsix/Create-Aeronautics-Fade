@@ -1,0 +1,23 @@
+# 构建产物
+build/
+.gradle/
+out/
+
+# 开发运行时（含世界存档、日志、测试数据包 —— 绝不公开）
+run/
+
+# 本地离线 maven 仓库：里面是第三方模组的 jar，不能随源码分发
+libs-maven/
+
+# 本地备份
+backup/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.eclipse/
+
+# 系统
+.DS_Store
+Thumbs.db
