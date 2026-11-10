@@ -34,6 +34,11 @@ public final class AeroFadeConfig {
     public static final ModConfigSpec.BooleanValue REQUIRE_NAMEPLATE_BLOCK;
     public static final ModConfigSpec.IntValue NAMEPLATE_SCAN_INTERVAL_TICKS;
 
+    // ------------------------------------------------------------------ 豁免传播
+    public static final ModConfigSpec.BooleanValue PROPAGATE_ON_CONTACT;
+    public static final ModConfigSpec.DoubleValue CONTACT_TOLERANCE;
+    public static final ModConfigSpec.BooleanValue PROPAGATE_ON_ENVELOPE;
+
     // ------------------------------------------------------------------ 质量阈值
     public static final ModConfigSpec.DoubleValue MASS_THRESHOLD;
 
@@ -134,6 +139,38 @@ public final class AeroFadeConfig {
                         "0 表示关闭这个功能（默认）。",
                         "参考：Sable 里一个普通方块的默认质量是 1.0 kpg。")
                 .defineInRange("massThreshold", 0.0D, 0.0D, Double.MAX_VALUE);
+
+        builder.pop();
+
+        builder.comment(
+                "豁免传播：一个已被豁免的结构（铭牌命名 / 质量达标），可以把豁免「传染」给和它相关的结构。",
+                "轴承、关节、绳子、对接器这类【机制连接】是一直生效的 ——",
+                "否则挖掘机的机臂、坦克的炮塔会被当成垃圾单独删掉。",
+                "下面两项是按【几何关系】传播，默认都开启。").push("propagate");
+
+        PROPAGATE_ON_CONTACT = builder
+                .comment("接触：两个结构的包围盒相邻或相交时，传播豁免。默认开启。",
+                        "典型场景：航母被铭牌命名 -> 停在甲板上的舰载机也跟着安全。",
+                        "强力胶粘在一起的结构也属于这一类（胶只能粘相邻方块，",
+                        "所以「粘住」必然表现为「包围盒相接」），不需要单独判定胶。",
+                        "注意这条会沿「贴在一起」链式传染：一堆互相挨着的残骸会被视为一体，",
+                        "一起被豁免。这是安全方向的取舍 —— 少删比错删好。")
+                .define("propagateOnContact", true);
+
+        CONTACT_TOLERANCE = builder
+                .comment("判定「接触」的容差（方块）。默认 0.25。",
+                        "两个包围盒相距小于这个值就算接触。",
+                        "留一点容差是因为「面贴面」摆放时，包围盒可能只差一个浮点误差；",
+                        "调大 = 更容易判定为接触（更保守，更不容易删东西）。")
+                .defineInRange("contactTolerance", 0.25D, 0.0D, 16.0D);
+
+        PROPAGATE_ON_ENVELOPE = builder
+                .comment("包络：一个结构整个位于另一个结构内部时，传播豁免。默认开启。",
+                        "典型场景：空中基地被铭牌命名 -> 停在它内部、与它没有任何物理连接的飞艇也跟着安全。",
+                        "判定方式：包围盒完全包含（三条轴上都覆盖）。",
+                        "注意包围盒是粗粒度近似：穿过大型框架结构内部的东西也会被算作「在里面」，",
+                        "这是刻意的取舍。")
+                .define("propagateOnEnvelope", true);
 
         builder.pop();
 

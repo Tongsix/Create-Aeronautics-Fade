@@ -45,6 +45,15 @@
 
 物理轴承会把挂上去的部分变成**独立的子维度** —— 挖掘机的机臂、坦克的炮塔都是这样，而铭牌只命名了宿主。本模组会顺着物理连接把豁免**传染**过去，覆盖轴承、绳子、对接器、把手、弹簧、合并胶，**整台机器被当作一个整体**。
 
+### 接触与包络也会传播
+
+除了轴承/关节这类**机制连接**，豁免还会沿**几何关系**传播：
+
+* **接触** —— 贴在已豁免结构上的东西一起安全。典型：航母被命名了，停在甲板上的舰载机不会被清理。强力胶粘住的结构也属于这一类（胶只能粘相邻方块，所以「粘住」必然表现为「贴在一起」）。
+* **包络** —— 整个位于已豁免结构内部的东西一起安全。典型：空中基地被命名了，停在它内部、和它没有任何物理连接的飞艇。
+
+两条都能在配置里单独关闭（`propagateOnContact` / `propagateOnEnvelope`）。它们**只会让更多东西被豁免，不会导致任何额外的删除**。
+
 ### 安装
 
 * **服务端：必须。** 所有逻辑都在服务端 —— 计时、判定、删除结构。
@@ -145,6 +154,15 @@ Machinery counts on purpose: if the machine is still running, the structure is s
 ### Exemption spreads along physical connections
 
 A physics bearing turns the part mounted on it into a **separate sub-level** — an excavator arm, a tank turret — while a nameplate only names the host. This mod follows the connection and **spreads the exemption** across bearings, ropes, docking connectors, handles, springs and merging glue, so **a whole machine is treated as one**.
+
+### Exemption also spreads through contact and enclosure
+
+Beyond mechanical links (bearings, joints), exemption propagates along **geometry**:
+
+* **Contact** — anything resting against an exempt structure is safe too. An aircraft parked on a named carrier's deck will not be cleaned up. Super-glued structures fall into this category as well (glue only binds adjacent blocks, so "glued" always means "touching").
+* **Enclosure** — anything entirely inside an exempt structure is safe. An airship docked inside a named sky base is protected even with no physical connection at all.
+
+Each can be turned off separately (`propagateOnContact` / `propagateOnEnvelope`). They only ever **exempt more** — they never cause an extra deletion.
 
 ### Installation
 
